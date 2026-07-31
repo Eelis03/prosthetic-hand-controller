@@ -1,23 +1,68 @@
 """Regression tests pinning recorded behaviour to a stored reference.
 
-What is pinned, and what is not, is a deliberate choice.
+What is pinned, and what is not, was decided by measurement rather than by
+argument. Every candidate quantity was recomputed with one object property
+perturbed by a relative 1e-12 and by a relative 1e-9, which are both far below
+any physically meaningful change, across five properties and every trial of the
+evaluation set. The movement that produced is the reproducibility scale of that
+quantity, and it separated the candidates cleanly into two groups.
 
-Pinned: converged geometry, verdicts, counts, event times and settled forces.
-Every one of these is either a closed form quantity, an integer, or a value the
-loop has stopped changing.
+Quantities that did not move at all, or moved only by double precision rounding,
+and are therefore pinned:
 
-Not pinned: the raw late run state of a contact simulation. A value taken from
-an iterative solve that has not converged is not reproducible on another
-machine, because the order in which a linear algebra kernel reduces a sum
-differs between builds and the difference grows with the number of iterations.
-Pinning such a value produces a test that passes where it was recorded and fails
-everywhere else.
+* every discrete verdict, that is feasibility, success, failure mode, the slip
+  detection count, whether the object slid at all, whether recovery occurred,
+  whether the object was held, and whether the commanded force saturated: no
+  change in any of the 100 perturbed runs. Note that ``slipped`` is a predicate
+  over ``peak_slip_speed``, which is itself unstable, but the peak speeds are 26
+  to 84 mm/s while the predicate compares against zero, so the verdict is nowhere
+  near its own boundary even though the number is;
+* ``time_to_contact`` and ``time_to_grip``: no change at all. Both are crossings
+  of a signal moving quickly through its threshold. The indentation sweeps
+  through zero at 0.035 mm to 0.043 mm per control period and the grip force
+  ramps through its convergence band at 60 N per second, so a last bit
+  difference cannot move either crossing into a different sample;
+* ``drop_time``: no change. The object passes the drop distance at about one
+  metre per second, which is the same steep crossing;
+* ``final_command``: no change, because the demand ladder is a fixed sequence of
+  arithmetic once the number of responses is fixed;
+* ``final_force`` and ``peak_force``: at most 1.7e-13 N, which is rounding;
+* ``contact_stiffness`` and ``required_force``: closed form.
 
-Every tolerance below is derived from the measurement rather than from the error
-that happened to be observed. The natural scales are the simulation time step
-for anything timed, the controller's convergence band for anything in newtons,
-the solver tolerance for anything bracketed by a root finder, and, for the slip
-displacement, the distance the object covers in one time step at its peak speed.
+Quantities that moved far more than their own quantisation, and are therefore
+bounded rather than pinned:
+
+* ``slip_recovery_time``: up to 19 control periods, and not monotonically in the
+  size of the perturbation;
+* ``total_slip``: up to 2.08 mm, which is 25 times the distance the object
+  covers in one control period at its peak sliding speed;
+* ``peak_slip_speed``: up to 43.8 percent.
+
+The reason is that all three are downstream of the finite difference the grip
+force regulator uses to estimate its plant gain. That estimate is a ratio of two
+small differences, so it is ill conditioned by construction, and in the first
+few control periods after a slip response it amplifies a 1e-12 change in the
+geometry into a seven percent change in the grip force. The force settles to the
+same value either way, which is why the settled quantities above are exact, but
+the deceleration of a sliding object differs throughout the arrest and the
+instant it comes to rest moves by many samples. Quantisation bounds a readout,
+not a crossing, and this crossing is reached tangentially.
+
+The two bounds are taken from configuration constants rather than from the
+recorded values, so that they cannot drift towards whatever a run happens to
+produce. ``RECOVERY_BOUND`` is the slip response refractory interval, the time
+within which one response is intended to have done its work; the largest
+recorded recovery is 96 ms and the largest measured movement is 19 ms, so the
+bound leaves 35 ms of headroom. ``SLIP_BOUND`` is half the drop distance at
+which the object is declared lost; the largest recorded slide is 4.58 mm and the
+largest measured movement is 2.08 mm, so the bound leaves 3.34 mm of headroom.
+Neither is a widened tolerance: ``test_the_slip_bounds_have_teeth`` shows that
+both are violated as soon as the slip response is switched off.
+
+The remaining tolerances are derived from the measurement in the same way. The
+natural scales are the control period for anything timed, the controller's
+convergence band for anything in newtons, and the solver tolerance for anything
+bracketed by a root finder.
 
 Running this module as a script rewrites the reference file, which should only
 be done after a change of behaviour has been reviewed.
@@ -25,29 +70,42 @@ be done after a change of behaviour has been reviewed.
 
 from __future__ import annotations
 
+import dataclasses
 import json
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-from hand_controller.analysis import summarise, summarise_set
+from hand_controller.algorithm import SlipResponseConfig
+from hand_controller.analysis import GraspMetrics, summarise, summarise_set
 from hand_controller.model import (
     GRASP_NAMES,
     GRASP_TAXONOMY,
     closure_at_span,
     default_hand,
+    grasp_object,
     span_range,
 )
 from hand_controller.model.grasps import SPAN_SOLVER_TOLERANCE
-from hand_controller.pipeline import EVALUATION_SET, run_evaluation
+from hand_controller.pipeline import (
+    EVALUATION_SET,
+    GraspTrace,
+    PlantConfig,
+    reference_trial,
+    run_evaluation,
+    simulate,
+)
 
 REFERENCE_PATH = Path(__file__).resolve().parent / "data" / "reference_run.json"
 
-# One control period. Every recorded time is an integer multiple of it, so this
-# is the coarsest resolution at which two runs can be said to differ.
+# One control period. The event times that are pinned all cross their threshold
+# steeply, and none of them moved at all under the perturbation study, so the
+# period is the coarsest resolution at which two runs can be said to differ.
 TIME_TOLERANCE = 1.0e-3
 # The band inside which the grip force controller declares the grip established.
+# The settled forces moved by at most 1.7e-13 N, twelve orders of magnitude
+# inside it.
 FORCE_TOLERANCE = 0.05
 # A thousand times the bracket width Brent's method is asked to reach, so the
 # comparison does not sit on the solver's own boundary.
@@ -58,11 +116,16 @@ SPAN_TOLERANCE = 1.0e-12
 # Closed form quantities are compared relatively.
 CLOSED_FORM_TOLERANCE = 1.0e-12
 
+# Bounds, not tolerances. Both come from configuration constants, and both are
+# checked for regression power by test_the_slip_bounds_have_teeth.
+RECOVERY_BOUND = SlipResponseConfig().refractory_time
+SLIP_BOUND = 0.5 * PlantConfig().drop_distance
 
-def _build_reference() -> dict[str, Any]:
+
+def _build_reference(traces: tuple[GraspTrace, ...] | None = None) -> dict[str, Any]:
     """Compute the reference record from the current implementation."""
     hand = default_hand()
-    traces = run_evaluation()
+    traces = traces if traces is not None else run_evaluation()
     metrics = tuple(summarise(trace) for trace in traces)
     summary = summarise_set(metrics)
 
@@ -77,6 +140,10 @@ def _build_reference() -> dict[str, Any]:
             "load_bearing_contacts": definition.load_bearing_contacts,
         }
 
+    # slip_recovery_time, total_slip and peak_slip_speed are deliberately absent.
+    # The perturbation study recorded in the module docstring shows they are not
+    # reproducible, and recording a number that is never asserted on would only
+    # invite someone to start asserting on it.
     trials = {}
     for trace, entry in zip(traces, metrics, strict=True):
         trials[entry.object_name] = {
@@ -92,9 +159,10 @@ def _build_reference() -> dict[str, Any]:
             "final_force": entry.final_force,
             "peak_force": entry.peak_force,
             "slip_events": entry.slip_events,
-            "slip_recovery_time": entry.slip_recovery_time,
-            "peak_slip_speed": entry.peak_slip_speed,
-            "total_slip": entry.total_slip if entry.drop_time is None else None,
+            "slip_detected": entry.slip_events > 0,
+            "slipped": entry.peak_slip_speed > 0.0,
+            "recovered": entry.slip_recovery_time is not None,
+            "held": entry.drop_time is None,
             "drop_time": entry.drop_time,
             "force_saturated": entry.force_saturated,
         }
@@ -129,9 +197,9 @@ def reference() -> dict[str, Any]:
 
 
 @pytest.fixture(scope="module")
-def recorded() -> dict[str, Any]:
+def recorded(evaluation_traces: tuple[GraspTrace, ...]) -> dict[str, Any]:
     """Recompute the record from the current implementation."""
-    return _build_reference()
+    return _build_reference(evaluation_traces)
 
 
 def test_the_evaluation_set_has_not_drifted(
@@ -160,10 +228,26 @@ def test_grasp_geometry_matches_the_reference(
 def test_trial_verdicts_match_the_reference(
     reference: dict[str, Any], recorded: dict[str, Any], name: str
 ) -> None:
-    """Verdicts and counts are exact: they are decisions, not measurements."""
+    """Verdicts and counts are exact: they are decisions, not measurements.
+
+    None of these changed in any of the 100 perturbed runs of the study
+    described in the module docstring, which is why they are compared with no
+    tolerance at all.
+    """
     stored = reference["trials"][name]
     current = recorded["trials"][name]
-    for key in ("grasp", "feasible", "success", "failure", "slip_events", "force_saturated"):
+    for key in (
+        "grasp",
+        "feasible",
+        "success",
+        "failure",
+        "slip_events",
+        "slip_detected",
+        "slipped",
+        "recovered",
+        "held",
+        "force_saturated",
+    ):
         assert current[key] == stored[key], key
 
 
@@ -188,10 +272,16 @@ def test_trial_forces_match_the_reference(
 def test_trial_event_times_match_the_reference(
     reference: dict[str, Any], recorded: dict[str, Any], name: str
 ) -> None:
-    """Event times are quantised to the control period, so that is the tolerance."""
+    """Pin only the event times whose crossings are steep.
+
+    Each of these three crosses its threshold far faster than one control period
+    of numerical noise, and none of them moved at all in the perturbation study,
+    so the control period is a safe tolerance. The arrest of a sliding object is
+    not in this list, for the reason set out in the module docstring.
+    """
     stored = reference["trials"][name]
     current = recorded["trials"][name]
-    for key in ("time_to_contact", "time_to_grip", "slip_recovery_time", "drop_time"):
+    for key in ("time_to_contact", "time_to_grip", "drop_time"):
         if stored[key] is None:
             assert current[key] is None, key
         else:
@@ -199,25 +289,93 @@ def test_trial_event_times_match_the_reference(
 
 
 @pytest.mark.parametrize("name", [pair[0] for pair in EVALUATION_SET])
-def test_slip_displacement_matches_the_reference(
-    reference: dict[str, Any], recorded: dict[str, Any], name: str
+def test_the_slip_response_stays_inside_its_budget(
+    metrics_by_object: dict[str, GraspMetrics], name: str
 ) -> None:
-    """Compare the settled slide with the distance covered in one control period.
+    """Bound the two quantities the perturbation study showed are not reproducible.
 
-    The displacement stops changing once the object is arrested, so it is a
-    converged quantity, but the instant of arrest is quantised to the control
-    period. One period at the peak sliding speed is therefore the smallest
-    difference the measurement can resolve, and it is the tolerance. Objects that
-    passed the drop distance record ``None``, because their displacement
-    afterwards is the free fall of an object that has already left the hand.
+    ``slip_recovery_time`` moves by up to 19 control periods and ``total_slip``
+    by up to 2.08 mm under a perturbation of 1e-12, so neither is pinned. What is
+    asserted instead is the claim the numbers exist to support: that a detected
+    slip is arrested within the refractory interval of one response, and that the
+    object slides less than half the distance at which it would be declared lost.
+    Both limits come from configuration constants, not from a recorded run.
     """
-    stored = reference["trials"][name]
-    current = recorded["trials"][name]
-    if stored["total_slip"] is None:
-        assert current["total_slip"] is None
-        return
-    tolerance = max(stored["peak_slip_speed"] * TIME_TOLERANCE, 1e-12)
-    assert current["total_slip"] == pytest.approx(stored["total_slip"], abs=tolerance)
+    metrics = metrics_by_object[name]
+    if metrics.slip_recovery_time is not None:
+        assert 0.0 < metrics.slip_recovery_time <= RECOVERY_BOUND
+    if metrics.drop_time is None:
+        assert metrics.total_slip <= SLIP_BOUND
+
+
+def _perturbed_metrics(relative: float) -> dict[str, GraspMetrics]:
+    """Recompute the evaluation set with every object width nudged by ``relative``."""
+    results: dict[str, GraspMetrics] = {}
+    for object_name, grasp_name in EVALUATION_SET:
+        item = grasp_object(object_name)
+        nudged = dataclasses.replace(item, width=item.width * (1.0 + relative))
+        trace = simulate(reference_trial(object_name, grasp_name), item=nudged)
+        results[object_name] = summarise(trace)
+    return results
+
+
+@pytest.mark.parametrize("relative", [1e-12, 1e-9])
+def test_the_pinned_fields_survive_a_negligible_perturbation(
+    metrics_by_object: dict[str, GraspMetrics], relative: float
+) -> None:
+    """Every pinned field must be insensitive to a change far below any real one.
+
+    This is the reproducibility contract stated as a test. A difference in the
+    order a floating point sum is reduced, which is what separates one machine
+    from another, is far smaller than 1e-12 of an object width. Anything that
+    survives this is safe to pin, and anything that does not has to be bounded
+    instead. Both bounded quantities are checked here against their bounds rather
+    than against the unperturbed value.
+    """
+    perturbed = _perturbed_metrics(relative)
+    for name, baseline in metrics_by_object.items():
+        other = perturbed[name]
+        assert other.feasible == baseline.feasible, name
+        assert other.success == baseline.success, name
+        assert other.failure == baseline.failure, name
+        assert other.slip_events == baseline.slip_events, name
+        assert other.force_saturated == baseline.force_saturated, name
+        assert (other.slip_recovery_time is None) == (
+            baseline.slip_recovery_time is None
+        ), name
+        assert (other.drop_time is None) == (baseline.drop_time is None), name
+        assert other.time_to_contact == pytest.approx(
+            baseline.time_to_contact, abs=TIME_TOLERANCE
+        ), name
+        assert other.time_to_grip == pytest.approx(
+            baseline.time_to_grip, abs=TIME_TOLERANCE
+        ), name
+        assert other.final_command == pytest.approx(
+            baseline.final_command, abs=FORCE_TOLERANCE
+        ), name
+        assert other.peak_force == pytest.approx(baseline.peak_force, abs=FORCE_TOLERANCE), name
+        if other.drop_time is not None and baseline.drop_time is not None:
+            assert other.drop_time == pytest.approx(baseline.drop_time, abs=TIME_TOLERANCE), name
+        if other.slip_recovery_time is not None:
+            assert 0.0 < other.slip_recovery_time <= RECOVERY_BOUND, name
+        if other.drop_time is None:
+            assert other.total_slip <= SLIP_BOUND, name
+
+
+def test_the_slip_bounds_have_teeth() -> None:
+    """A bound that nothing can violate is a widened tolerance in disguise.
+
+    Switching off the slip response leaves the rest of the controller untouched
+    and makes both bounds fail on every object that needs more than the nominal
+    grip force, which is what gives them regression power.
+    """
+    traces = run_evaluation(slip_response=False)
+    metrics = [summarise(trace) for trace in traces]
+    affected = [entry for entry in metrics if entry.peak_slip_speed > 0.0]
+    assert len(affected) >= 6
+    for entry in affected:
+        assert entry.slip_recovery_time is None
+        assert entry.total_slip > SLIP_BOUND
 
 
 def test_the_summary_matches_the_reference(

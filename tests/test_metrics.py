@@ -22,20 +22,22 @@ from hand_controller.analysis import (
     summarise_set,
 )
 from hand_controller.model import default_hand, required_grip_force
-from hand_controller.pipeline import GraspTrace, run_evaluation, simulate, without_slip_response
+from hand_controller.pipeline import GraspTrace, simulate, without_slip_response
 from hand_controller.pipeline.scenarios import reference_trial
 
 HAND = default_hand()
 
 
 @pytest.fixture(scope="module")
-def traces() -> tuple[GraspTrace, ...]:
-    return run_evaluation()
+def traces(evaluation_traces: tuple[GraspTrace, ...]) -> tuple[GraspTrace, ...]:
+    """The shared evaluation set, named locally for readability."""
+    return evaluation_traces
 
 
 @pytest.fixture(scope="module")
-def metrics(traces: tuple[GraspTrace, ...]) -> tuple[GraspMetrics, ...]:
-    return tuple(summarise(trace) for trace in traces)
+def metrics(evaluation_metrics: tuple[GraspMetrics, ...]) -> tuple[GraspMetrics, ...]:
+    """The shared metrics, named locally for readability."""
+    return evaluation_metrics
 
 
 def test_nine_of_the_ten_objects_are_held(metrics: tuple[GraspMetrics, ...]) -> None:

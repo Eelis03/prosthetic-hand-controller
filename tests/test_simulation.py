@@ -16,16 +16,15 @@ from hand_controller.pipeline import (
     TrialConfig,
     mode_switch_trial,
     reference_trial,
-    run_evaluation,
     simulate,
     tactile_signal,
 )
 
 
 @pytest.fixture(scope="module")
-def traces() -> tuple[GraspTrace, ...]:
-    """Simulate the whole evaluation set once for the module."""
-    return run_evaluation()
+def traces(evaluation_traces: tuple[GraspTrace, ...]) -> tuple[GraspTrace, ...]:
+    """The shared evaluation set, named locally for readability."""
+    return evaluation_traces
 
 
 def test_the_evaluation_set_covers_every_object_once(traces: tuple[GraspTrace, ...]) -> None:

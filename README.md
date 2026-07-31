@@ -537,7 +537,7 @@ The suite has three tiers: property and invariant tests covering the mathematics
 regression tests pinning recorded behaviour, and integration tests running each
 example script under a reduced iteration count.
 
-There are 2897 tests and the whole suite runs in about thirty seconds.
+There are 2900 tests and the whole suite runs in about forty seconds.
 
 The property and invariant tier asserts that forward kinematics reproduces the
 phalanx lengths and matches a chain summed by hand, that abduction is a pure
@@ -560,15 +560,41 @@ commanded force stays inside the safety interval under a thousand adversarial
 inputs including infinities and quiet not a number values.
 
 The regression tier recomputes the whole evaluation set and compares it against
-`tests/data/reference_run.json`. What is pinned is deliberate: converged grasp
-geometry, root finder results, verdicts, counts, event times and settled forces.
-What is not pinned is the raw late run state of a contact simulation, because a
-value from an iterative solve that has not converged is not reproducible on
-another machine. Every tolerance is derived from the measurement rather than from
-an observed error. Timings use one control period, forces use the controller's
-convergence band, the closure solver uses a thousand times its own bracket width,
-and the slip displacement uses the distance the object covers in one control
-period at its peak sliding speed. Run
+`tests/data/reference_run.json`. Which quantities are pinned was decided by
+measurement, not by argument: every candidate was recomputed with one object
+property perturbed by a relative 1e-12 and by a relative 1e-9, across five
+properties and every trial, and the movement that produced is that quantity's
+reproducibility scale.
+
+The result splits cleanly. Grasp geometry, every discrete verdict, the slip
+detection count, `time_to_contact`, `time_to_grip`, `drop_time` and the settled
+forces do not move at all, or move only by rounding at 1.7e-13 N, so they are
+pinned. `slip_recovery_time` moves by up to 19 control periods, `total_slip` by
+up to 2.08 mm and `peak_slip_speed` by up to 43.8 percent, so none of the three
+is pinned. All three sit downstream of the finite difference the force regulator
+uses to estimate its plant gain, which is a ratio of two small differences and
+therefore ill conditioned by construction; in the first control periods after a
+slip response it turns a 1e-12 change in the geometry into a seven percent change
+in grip force. The force settles to the same value either way, which is why the
+settled quantities are exact, but the deceleration differs throughout the arrest
+and the instant the object stops moves by many samples. Quantisation bounds a
+readout, not a crossing, and this crossing is reached tangentially.
+
+The two unstable quantities are bounded instead. Recovery must complete within
+the slip response refractory interval of 150 ms, against a largest recorded value
+of 96 ms and a largest measured movement of 19 ms. The slide must stay under half
+the 20 mm drop distance, against a largest recorded value of 4.58 mm and a
+largest measured movement of 2.08 mm. Both limits come from configuration
+constants rather than from a recorded run, and a test switches the slip response
+off to confirm that both are violated when the behaviour they protect is broken.
+Two further tests recompute the whole evaluation set under those same
+perturbations and assert that every pinned field is unchanged and both bounds
+still hold, which states the reproducibility contract as a test rather than as a
+comment.
+
+The remaining tolerances are derived the same way: one control period for
+timings, the controller's convergence band for forces, and a thousand times its
+own bracket width for the closure solver. Run
 `uv run python tests/test_regression.py` to regenerate the file after a reviewed
 change of behaviour.
 

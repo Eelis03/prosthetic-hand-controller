@@ -346,6 +346,22 @@ edge of a contact patch before gross sliding begins, is not modelled, so the
 object always moves some distance before the response arrives. The measured
 distance is 0.46 mm to 4.58 mm depending on the size of the force shortfall.
 
+**The transient of an arrest is not reproducible to the last digit.** The force
+regulator estimates its plant gain from a finite difference, a ratio of two small
+increments, which is ill conditioned by construction. In the first control
+periods after a slip response it turns a relative 1e-12 change in the geometry
+into a seven percent change in grip force, and the deceleration of the sliding
+object then differs throughout the arrest. The settled force is identical either
+way, and every verdict, count and steady state quantity is exact, but
+``slip_recovery_time`` moves by up to 19 control periods, ``total_slip`` by up to
+2.08 mm and ``peak_slip_speed`` by up to 43.8 percent between one arithmetic
+ordering and another. Those three are reported as measurements of a particular
+run and bounded rather than pinned in the regression suite; the reasoning and the
+numbers are recorded in the docstring of `tests/test_regression.py`. Removing
+this would mean an analytic derivative of the contact model in place of the
+secant, which would also remove the loop's ability to work on an object whose
+stiffness it does not know.
+
 **The thumb model conflates opposition with abduction.** Opposition is a single
 rotation of the thumb flexion plane, with the radial splay of the metacarpal held
 fixed. A real trapeziometacarpal joint has two independent degrees of freedom
