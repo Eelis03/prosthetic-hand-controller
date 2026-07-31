@@ -1,0 +1,290 @@
+{
+ "description": "Evaluation set at the reference configuration, for regression testing.",
+ "evaluation_set": [
+  [
+   "drinking_glass",
+   "medium_wrap"
+  ],
+  [
+   "plastic_bottle",
+   "medium_wrap"
+  ],
+  [
+   "foam_cup",
+   "medium_wrap"
+  ],
+  [
+   "paper_cup_full",
+   "medium_wrap"
+  ],
+  [
+   "apple",
+   "power_sphere"
+  ],
+  [
+   "hardback_book",
+   "prismatic_four"
+  ],
+  [
+   "battery_cell",
+   "palmar_pinch"
+  ],
+  [
+   "pen",
+   "tripod"
+  ],
+  [
+   "door_key",
+   "lateral"
+  ],
+  [
+   "steel_ball",
+   "power_sphere"
+  ]
+ ],
+ "geometry": {
+  "lateral": {
+   "closed_span": -0.004154547670384024,
+   "closure_at_midpoint": 0.406472896486414,
+   "load_bearing_contacts": 2,
+   "open_span": 0.027112142982588374
+  },
+  "medium_wrap": {
+   "closed_span": 0.02772522459903626,
+   "closure_at_midpoint": 0.31643118393582603,
+   "load_bearing_contacts": 6,
+   "open_span": 0.0722197196034674
+  },
+  "palmar_pinch": {
+   "closed_span": -0.01804529846427759,
+   "closure_at_midpoint": 0.5487393611889109,
+   "load_bearing_contacts": 2,
+   "open_span": 0.04972948808472491
+  },
+  "power_sphere": {
+   "closed_span": -0.014279782738235179,
+   "closure_at_midpoint": 0.4734070545835311,
+   "load_bearing_contacts": 5,
+   "open_span": 0.07122112933685107
+  },
+  "prismatic_four": {
+   "closed_span": 0.00650454678292017,
+   "closure_at_midpoint": 0.3860666514969273,
+   "load_bearing_contacts": 5,
+   "open_span": 0.07242541895711352
+  },
+  "tripod": {
+   "closed_span": 0.006754437387435176,
+   "closure_at_midpoint": 0.4006951945718534,
+   "load_bearing_contacts": 3,
+   "open_span": 0.060197581232382336
+  }
+ },
+ "grasp_names": [
+  "medium_wrap",
+  "power_sphere",
+  "prismatic_four",
+  "palmar_pinch",
+  "tripod",
+  "lateral"
+ ],
+ "summary": {
+  "dropped_trials": 1,
+  "slipping_trials": 7,
+  "success_rate": 0.9,
+  "successes": 9,
+  "trials": 10
+ },
+ "trials": {
+  "apple": {
+   "contact_stiffness": 70710.6781186547,
+   "drop_time": null,
+   "failure": "none",
+   "feasible": "feasible",
+   "final_command": 2.6,
+   "final_force": 2.599999999999995,
+   "force_saturated": false,
+   "grasp": "power_sphere",
+   "peak_force": 2.6000000000000307,
+   "peak_slip_speed": 0.03010489488617398,
+   "required_force": 1.4709974999999997,
+   "slip_events": 1,
+   "slip_recovery_time": 0.034,
+   "success": true,
+   "time_to_contact": 0.147,
+   "time_to_grip": 0.20800000000000002,
+   "total_slip": 0.0006446135617433384
+  },
+  "battery_cell": {
+   "contact_stiffness": 179770.04138599406,
+   "drop_time": null,
+   "failure": "none",
+   "feasible": "feasible",
+   "final_command": 2.6,
+   "final_force": 2.600000000000002,
+   "force_saturated": false,
+   "grasp": "palmar_pinch",
+   "peak_force": 2.600000000000013,
+   "peak_slip_speed": 0.08412855893819617,
+   "required_force": 2.2882183333333335,
+   "slip_events": 1,
+   "slip_recovery_time": 0.096,
+   "success": true,
+   "time_to_contact": 0.353,
+   "time_to_grip": 0.405,
+   "total_slip": 0.004578782584901244
+  },
+  "door_key": {
+   "contact_stiffness": 192671.77694184848,
+   "drop_time": null,
+   "failure": "none",
+   "feasible": "feasible",
+   "final_command": 1.2,
+   "final_force": 1.199999999999983,
+   "force_saturated": false,
+   "grasp": "lateral",
+   "peak_force": 1.1999999999999844,
+   "peak_slip_speed": 0.0,
+   "required_force": 0.16344416666666667,
+   "slip_events": 0,
+   "slip_recovery_time": null,
+   "success": true,
+   "time_to_contact": 0.646,
+   "time_to_grip": 0.716,
+   "total_slip": 0.0
+  },
+  "drinking_glass": {
+   "contact_stiffness": 192671.77694184848,
+   "drop_time": null,
+   "failure": "none",
+   "feasible": "feasible",
+   "final_command": 2.6,
+   "final_force": 2.6000000000000267,
+   "force_saturated": false,
+   "grasp": "medium_wrap",
+   "peak_force": 2.6000000000000485,
+   "peak_slip_speed": 0.02604390050510946,
+   "required_force": 1.5254788888888886,
+   "slip_events": 1,
+   "slip_recovery_time": 0.028,
+   "success": true,
+   "time_to_contact": 0.161,
+   "time_to_grip": 0.21,
+   "total_slip": 0.0004597086869732567
+  },
+  "foam_cup": {
+   "contact_stiffness": 2745.7277040940075,
+   "drop_time": null,
+   "failure": "none",
+   "feasible": "feasible",
+   "final_command": 1.2,
+   "final_force": 1.1999999999999884,
+   "force_saturated": false,
+   "grasp": "medium_wrap",
+   "peak_force": 1.1999999999999935,
+   "peak_slip_speed": 0.0,
+   "required_force": 0.028019000000000006,
+   "slip_events": 0,
+   "slip_recovery_time": null,
+   "success": true,
+   "time_to_contact": 0.212,
+   "time_to_grip": 0.442,
+   "total_slip": 0.0
+  },
+  "hardback_book": {
+   "contact_stiffness": 128648.15350657134,
+   "drop_time": null,
+   "failure": "none",
+   "feasible": "feasible",
+   "final_command": 2.6,
+   "final_force": 2.599999999999979,
+   "force_saturated": false,
+   "grasp": "prismatic_four",
+   "peak_force": 2.6000000000000223,
+   "peak_slip_speed": 0.08372084964428557,
+   "required_force": 2.20649625,
+   "slip_events": 1,
+   "slip_recovery_time": 0.081,
+   "success": true,
+   "time_to_contact": 0.54,
+   "time_to_grip": 0.595,
+   "total_slip": 0.003963240813102452
+  },
+  "paper_cup_full": {
+   "contact_stiffness": 6776.932222332081,
+   "drop_time": null,
+   "failure": "none",
+   "feasible": "feasible",
+   "final_command": 2.6,
+   "final_force": 2.5999999999999925,
+   "force_saturated": false,
+   "grasp": "medium_wrap",
+   "peak_force": 2.6000000000000036,
+   "peak_slip_speed": 0.027398120483172115,
+   "required_force": 1.4009500000000001,
+   "slip_events": 1,
+   "slip_recovery_time": 0.04,
+   "success": true,
+   "time_to_contact": 0.17400000000000002,
+   "time_to_grip": 0.324,
+   "total_slip": 0.0006863623306319025
+  },
+  "pen": {
+   "contact_stiffness": 179770.04138599406,
+   "drop_time": null,
+   "failure": "none",
+   "feasible": "feasible",
+   "final_command": 1.2,
+   "final_force": 1.2000000000000208,
+   "force_saturated": false,
+   "grasp": "tripod",
+   "peak_force": 1.200000000000031,
+   "peak_slip_speed": 0.0,
+   "required_force": 0.11207600000000002,
+   "slip_events": 0,
+   "slip_recovery_time": null,
+   "success": true,
+   "time_to_contact": 0.81,
+   "time_to_grip": 0.879,
+   "total_slip": 0.0
+  },
+  "plastic_bottle": {
+   "contact_stiffness": 34429.85648431421,
+   "drop_time": null,
+   "failure": "none",
+   "feasible": "feasible",
+   "final_command": 2.6,
+   "final_force": 2.6000000000000085,
+   "force_saturated": false,
+   "grasp": "medium_wrap",
+   "peak_force": 2.6000000000000303,
+   "peak_slip_speed": 0.08431264737928004,
+   "required_force": 2.1247741666666666,
+   "slip_events": 1,
+   "slip_recovery_time": 0.073,
+   "success": true,
+   "time_to_contact": 0.212,
+   "time_to_grip": 0.294,
+   "total_slip": 0.0036666003345815702
+  },
+  "steel_ball": {
+   "contact_stiffness": 195330.5716383197,
+   "drop_time": 0.06600000000000006,
+   "failure": "dropped",
+   "feasible": "feasible",
+   "final_command": 15.0,
+   "final_force": 14.999999999999963,
+   "force_saturated": true,
+   "grasp": "power_sphere",
+   "peak_force": 15.00000000000026,
+   "peak_slip_speed": 6.636326389718489,
+   "required_force": 19.221034,
+   "slip_events": 1,
+   "slip_recovery_time": null,
+   "success": false,
+   "time_to_contact": 0.179,
+   "time_to_grip": 0.225,
+   "total_slip": null
+  }
+ }
+}
