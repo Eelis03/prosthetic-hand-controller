@@ -22,11 +22,12 @@ and are therefore pinned:
   through zero at 0.035 mm to 0.043 mm per control period and the grip force
   ramps through its convergence band at 60 N per second, so a last bit
   difference cannot move either crossing into a different sample;
-* ``drop_time``: no change. The object passes the drop distance at about one
-  metre per second, which is the same steep crossing;
+* ``drop_time``: no change. The object passes the drop distance at 0.59 m/s,
+  which is the same steep crossing;
 * ``final_command``: no change, because the demand ladder is a fixed sequence of
   arithmetic once the number of responses is fixed;
-* ``final_force`` and ``peak_force``: at most 1.7e-13 N, which is rounding;
+* ``final_force`` and ``peak_force`` of a trial that kept its object: at most
+  7.0e-14 N, which is rounding;
 * ``contact_stiffness`` and ``required_force``: closed form.
 
 Quantities that moved far more than their own quantisation, and are therefore
@@ -36,28 +37,40 @@ bounded rather than pinned:
   size of the perturbation;
 * ``total_slip``: up to 2.08 mm, which is 25 times the distance the object
   covers in one control period at its peak sliding speed;
-* ``peak_slip_speed``: up to 43.8 percent.
+* ``peak_slip_speed``: up to 43.8 percent;
+* ``final_force`` and ``peak_force`` of the trial that loses its object: up to
+  2.71e-2 N, which is 3.9e11 times the movement the same two quantities show on
+  a trial that settles. The trial ends on the sample the object leaves the hand,
+  60 ms into the rise that follows the slip response, so both are readings taken
+  during the transient rather than after it. They are bounded by the demand the
+  loop was chasing at the time.
 
-The reason is that all three are downstream of the finite difference the grip
-force regulator uses to estimate its plant gain. That estimate is a ratio of two
-small differences, so it is ill conditioned by construction, and in the first
-few control periods after a slip response it amplifies a 1e-12 change in the
-geometry into a seven percent change in the grip force. The force settles to the
-same value either way, which is why the settled quantities above are exact, but
-the deceleration of a sliding object differs throughout the arrest and the
-instant it comes to rest moves by many samples. Quantisation bounds a readout,
-not a crossing, and this crossing is reached tangentially.
+The reason is the same in every case. All of them are downstream of the finite
+difference the grip force regulator uses to estimate its plant gain. That
+estimate is a ratio of two small differences, so it is ill conditioned by
+construction, and in the first few control periods after a slip response it
+amplifies a 1e-12 change in the geometry into a seven percent change in the grip
+force. The force settles to the same value either way, which is why the settled
+quantities above are exact, but the deceleration of a sliding object differs
+throughout the arrest, the instant it comes to rest moves by many samples, and a
+force read before the transient has died is read at a different point on a
+different curve. Quantisation bounds a readout, not a crossing, and this
+crossing is reached tangentially.
 
-The two bounds are taken from configuration constants rather than from the
-recorded values, so that they cannot drift towards whatever a run happens to
-produce. ``RECOVERY_BOUND`` is the slip response refractory interval, the time
-within which one response is intended to have done its work; the largest
-recorded recovery is 96 ms and the largest measured movement is 19 ms, so the
-bound leaves 35 ms of headroom. ``SLIP_BOUND`` is half the drop distance at
-which the object is declared lost; the largest recorded slide is 4.58 mm and the
-largest measured movement is 2.08 mm, so the bound leaves 3.34 mm of headroom.
-Neither is a widened tolerance: ``test_the_slip_bounds_have_teeth`` shows that
-both are violated as soon as the slip response is switched off.
+The bounds are taken from configuration constants or from other pinned
+quantities rather than from the recorded values, so that they cannot drift
+towards whatever a run happens to produce. ``RECOVERY_BOUND`` is the slip
+response refractory interval, the time within which one response is intended to
+have done its work; the largest recorded recovery is 96 ms and the largest
+measured movement is 19 ms, so the bound leaves 35 ms of headroom. ``SLIP_BOUND``
+is half the drop distance at which the object is declared lost; the largest
+recorded slide is 4.58 mm and the largest measured movement is 2.08 mm, so the
+bound leaves 3.34 mm of headroom. The forces of the lost trial are bounded by
+``final_command``, which is pinned and exact. None of the three is a widened
+tolerance: ``test_the_slip_bounds_have_teeth`` shows that the first two are
+violated as soon as the slip response is switched off, and the third fails as
+soon as the loop delivers the force it was asked for, which is what every trial
+that keeps its object does.
 
 The remaining tolerances are derived from the measurement in the same way. The
 natural scales are the control period for anything timed, the controller's
@@ -264,8 +277,19 @@ def test_trial_forces_match_the_reference(
     assert current["required_force"] == pytest.approx(
         stored["required_force"], rel=CLOSED_FORM_TOLERANCE
     )
-    for key in ("final_command", "final_force", "peak_force"):
-        assert current[key] == pytest.approx(stored[key], abs=FORCE_TOLERANCE), key
+    assert current["final_command"] == pytest.approx(
+        stored["final_command"], abs=FORCE_TOLERANCE
+    )
+    if stored["held"]:
+        for key in ("final_force", "peak_force"):
+            assert current[key] == pytest.approx(stored[key], abs=FORCE_TOLERANCE), key
+    else:
+        # A trial that lost its object stopped in the middle of a rise, so its
+        # forces are transient readings. What is asserted is the claim they
+        # exist to support: the loop had not yet delivered the force it was
+        # asked for when the object left.
+        assert 0.0 < current["peak_force"] < current["final_command"]
+        assert current["final_force"] <= current["peak_force"]
 
 
 @pytest.mark.parametrize("name", [pair[0] for pair in EVALUATION_SET])
@@ -353,13 +377,17 @@ def test_the_pinned_fields_survive_a_negligible_perturbation(
         assert other.final_command == pytest.approx(
             baseline.final_command, abs=FORCE_TOLERANCE
         ), name
-        assert other.peak_force == pytest.approx(baseline.peak_force, abs=FORCE_TOLERANCE), name
         if other.drop_time is not None and baseline.drop_time is not None:
             assert other.drop_time == pytest.approx(baseline.drop_time, abs=TIME_TOLERANCE), name
         if other.slip_recovery_time is not None:
             assert 0.0 < other.slip_recovery_time <= RECOVERY_BOUND, name
         if other.drop_time is None:
+            assert other.peak_force == pytest.approx(
+                baseline.peak_force, abs=FORCE_TOLERANCE
+            ), name
             assert other.total_slip <= SLIP_BOUND, name
+        else:
+            assert 0.0 < other.peak_force < other.final_command, name
 
 
 def test_the_slip_bounds_have_teeth() -> None:

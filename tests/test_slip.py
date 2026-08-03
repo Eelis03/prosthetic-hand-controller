@@ -175,9 +175,17 @@ def test_the_same_object_is_dropped_without_the_slip_response(object_name: str) 
     with_response = summarise(simulate(config))
     without = summarise(simulate(without_slip_response(config)))
 
+    drop = config.plant.drop_distance
     assert with_response.success
     assert not without.success
-    assert without.total_slip > 100.0 * with_response.total_slip
+    # The comparison is against the drop distance, a configuration constant, and
+    # not a ratio of the two slides. Both slides are downstream of the plant gain
+    # estimate and neither is reproducible to better than a couple of
+    # millimetres, but which side of the drop distance each one falls is.
+    assert with_response.total_slip < 0.5 * drop
+    assert with_response.drop_time is None
+    assert without.total_slip > drop
+    assert without.drop_time is not None
     assert without.final_command == pytest.approx(
         config.controller.force.nominal_force, abs=config.controller.force.tolerance
     )

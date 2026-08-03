@@ -74,11 +74,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             if metrics.slip_recovery_time is None
             else f"{metrics.slip_recovery_time * 1e3:.0f}"
         )
-        slip = f"{metrics.total_slip * 1e3:.2f}" if metrics.drop_time is None else "gone"
         print(
             f"{metrics.object_name:<16}{onset:>9.3f}{detect:>10.3f}"
             f"{(detect - onset) * 1e3:>15.1f}{recovery:>13}"
-            f"{slip:>9}{metrics.peak_slip_speed * 1e3:>13.2f}"
+            f"{metrics.total_slip * 1e3:>9.2f}{metrics.peak_slip_speed * 1e3:>13.2f}"
         )
 
     detail = reference_trial(

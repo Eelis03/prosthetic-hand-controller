@@ -46,17 +46,32 @@ def test_nine_of_the_ten_objects_are_held(metrics: tuple[GraspMetrics, ...]) -> 
     assert sum(1 for entry in metrics if entry.success) == 9
 
 
-def test_the_failure_is_the_steel_ball_and_the_force_saturated(
-    metrics: tuple[GraspMetrics, ...],
+def test_the_failure_is_the_steel_ball_and_it_is_gone_before_the_ladder_climbs(
+    traces: tuple[GraspTrace, ...], metrics: tuple[GraspMetrics, ...]
 ) -> None:
-    """The one object the controller cannot hold, and the reason it cannot."""
+    """The one object the controller cannot hold, and the reason it cannot.
+
+    The ball needs more force per contact than the safety limit allows, so it
+    was never holdable. It is also gone before the demand ladder gets anywhere
+    near that limit: one slip response is granted, the next is barred by the
+    refractory interval, and the ball has left the hand first.
+    """
     failures = [entry for entry in metrics if not entry.success]
     assert [entry.object_name for entry in failures] == ["steel_ball"]
     failure = failures[0]
+    trace = next(item for item in traces if item.item.name == "steel_ball")
+    limit = trace.config.controller.force.safety_limit
+    refractory = trace.config.controller.slip_response.refractory_time
+
     assert failure.failure is FailureMode.DROPPED
-    assert failure.force_saturated
-    assert failure.required_force > failure.final_command
+    assert failure.required_force > limit
+    assert failure.slip_events == 1
     assert failure.drop_time is not None
+    assert failure.drop_time < refractory
+    assert failure.final_command < limit
+    assert failure.required_force > failure.final_command
+    assert not failure.force_saturated
+    assert trace.released
 
 
 def test_the_required_force_matches_the_closed_form(
@@ -96,10 +111,33 @@ def test_timing_metrics_are_quantised_to_the_time_step(
 def test_the_loop_leaves_no_steady_state_error(
     traces: tuple[GraspTrace, ...], metrics: tuple[GraspMetrics, ...]
 ) -> None:
-    """The tolerance is the controller's own convergence band."""
+    """The tolerance is the controller's own convergence band.
+
+    A steady state is only defined for a trial that reached one. The trial that
+    loses its object ends on the sample the object left, in the middle of the
+    rise that followed the slip response, and is asserted on separately below.
+    """
     for trace, entry in zip(traces, metrics, strict=True):
-        assert entry.steady_state_error <= trace.config.controller.force.tolerance
         assert steady_state_error(trace) == entry.steady_state_error
+        if not trace.released:
+            assert entry.steady_state_error <= trace.config.controller.force.tolerance
+
+
+def test_the_trial_that_loses_its_object_ends_while_the_force_is_still_rising(
+    traces: tuple[GraspTrace, ...], metrics: tuple[GraspMetrics, ...]
+) -> None:
+    """The one trial with a steady state error has not settled, it has stopped.
+
+    The force is still chasing a demand that was raised 60 ms earlier when the
+    object leaves, which is exactly why its final error is not evidence about
+    the control law.
+    """
+    for trace, entry in zip(traces, metrics, strict=True):
+        if not trace.released:
+            continue
+        assert entry.steady_state_error > trace.config.controller.force.tolerance
+        assert entry.final_force < entry.final_command
+        assert float(trace.demanded_force[-1]) > trace.config.controller.force.nominal_force
 
 
 def test_the_load_ramp_does_not_overshoot(

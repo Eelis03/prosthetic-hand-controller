@@ -105,11 +105,10 @@ def format_evaluation(metrics: tuple[GraspMetrics, ...]) -> str:
             "n/a" if entry.slip_recovery_time is None else f"{entry.slip_recovery_time * 1e3:.0f}"
         )
         dropped = "n/a" if entry.drop_time is None else f"{entry.drop_time * 1e3:.0f}"
-        slip = (
-            f"{entry.total_slip * 1000.0:.2f}"
-            if entry.drop_time is None
-            else "gone"
-        )
+        # The slide of a lost object is the distance it travelled through the
+        # fingers before it left them, which is a real distance now that the
+        # trial ends where the object does.
+        slip = f"{entry.total_slip * 1000.0:.2f}"
         outcome = "success" if entry.success else entry.failure.value
         lines.append(
             f"{entry.object_name:<16}{entry.grasp_name:<16}"
@@ -150,7 +149,7 @@ def format_slip_comparison(
     for on, off in zip(with_response, without_response, strict=True):
         recovery = "n/a" if on.slip_recovery_time is None else f"{on.slip_recovery_time * 1e3:.0f}"
         dropped = "n/a" if off.drop_time is None else f"{off.drop_time * 1e3:.0f}"
-        slip = f"{on.total_slip * 1000.0:.2f}" if on.drop_time is None else "gone"
+        slip = f"{on.total_slip * 1000.0:.2f}"
         lines.append(
             f"{on.object_name:<16}{slip:>12}{recovery:>13}"
             f"{('success' if on.success else on.failure.value):>12}"

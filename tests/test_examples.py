@@ -13,6 +13,8 @@ import pytest
 EXAMPLES_DIR = Path(__file__).resolve().parent.parent / "examples"
 
 # Every example, with the arguments that shrink it to a fast integration run.
+# "{tmp}" is replaced by a temporary directory, so that an example whose whole
+# job is to write files can be run without touching the tracked ones.
 EXAMPLE_ARGUMENTS: dict[str, tuple[str, ...]] = {
     "force_control": ("--objects", "drinking_glass", "--duration", "1.4", "--no-figures"),
     "grasp_evaluation": ("--duration", "1.4", "--lift-time", "0.9", "--no-figures"),
@@ -20,6 +22,7 @@ EXAMPLE_ARGUMENTS: dict[str, tuple[str, ...]] = {
     "hand_kinematics": ("--samples", "21", "--no-figures"),
     "mode_switching": ("--duration", "1.0", "--bursts", "0.3"),
     "proportional_control": ("--samples", "201", "--timing-steps", "200", "--no-figures"),
+    "readme_figures": ("--figure-dir", "{tmp}", "--duration", "1.2"),
     "slip_recovery": ("--duration", "1.4", "--lift-time", "0.9", "--no-figures"),
 }
 
@@ -47,9 +50,13 @@ def test_every_example_is_covered() -> None:
 
 
 @pytest.mark.parametrize("name", sorted(EXAMPLE_ARGUMENTS))
-def test_example_runs_to_completion(name: str, capsys: pytest.CaptureFixture[str]) -> None:
+def test_example_runs_to_completion(
+    name: str, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
     module = _load(name)
-    arguments: Sequence[str] = EXAMPLE_ARGUMENTS[name]
+    arguments: Sequence[str] = tuple(
+        value.replace("{tmp}", str(tmp_path)) for value in EXAMPLE_ARGUMENTS[name]
+    )
     assert module.main(arguments) == 0
     captured = capsys.readouterr()
     assert captured.out.strip()
@@ -97,6 +104,22 @@ def test_control_example_writes_its_figure(
     assert module.main(arguments) == 0
     capsys.readouterr()
     assert sorted(path.name for path in tmp_path.glob("*.png")) == ["control_characteristic.png"]
+
+
+def test_the_readme_figure_script_writes_exactly_the_published_pair(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """One command regenerates the tracked figures, and reports what they cost."""
+    module = _load("readme_figures")
+    assert module.main(("--figure-dir", str(tmp_path), "--duration", "1.2")) == 0
+    captured = capsys.readouterr()
+    assert sorted(path.name for path in tmp_path.glob("*.png")) == [
+        "grasp_postures.png",
+        "slip_recovery.png",
+    ]
+    total = sum(path.stat().st_size for path in tmp_path.glob("*.png"))
+    assert total <= module.BUDGET_BYTES
+    assert f"total {total} bytes" in captured.out
 
 
 def test_slip_example_writes_its_figure(

@@ -9,5 +9,7 @@ dist/
 build/
 *.egg-info/
 outputs/
-figures/
+# Anchored to the repository root. A bare "figures/" would also match
+# docs/figures, which is tracked and published in the README.
+/figures/
 .DS_Store

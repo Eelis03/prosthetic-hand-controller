@@ -21,11 +21,18 @@ The loop knows nothing about the object beyond the force it measures and the
 tactile signal it receives. Everything else, the mass, the friction coefficient
 and the stiffness, acts only through the physics.
 
+An object that slides past the drop distance has left the hand, and the trial
+ends on that sample. The trace is therefore as long as the trial lasted rather
+than as long as it was configured for, ``released`` says which of the two
+happened, and every recorded quantity describes an object that was still between
+the fingers. An earlier version kept integrating the slide after the object was
+gone, which reported a failed trial as a slide of metres at six metres per
+second and let the force loop go on climbing its demand ladder against an object
+that was already on the floor.
+
 Simplifications recorded here and in the design notes: the grasp is reduced to
-one span and one normal force rather than a wrench on a rigid body; the object
-slides along a single tangential axis; and an object that has slipped past the
-drop distance keeps sliding through the fingers instead of leaving the hand,
-which is what lets a failed trial show the commanded force saturating.
+one span and one normal force rather than a wrench on a rigid body, and the
+object slides along a single tangential axis.
 """
 
 from __future__ import annotations
@@ -136,6 +143,7 @@ class PlantConfig:
     pad: FingertipPad = field(default_factory=default_pad)
     tactile: TactileConfig = field(default_factory=TactileConfig)
     drop_distance: float = 0.020
+    """Slide at which the object has left the hand and the trial ends."""
     slip_speed_threshold: float = 1.0e-4
 
 
@@ -169,12 +177,18 @@ class TrialConfig:
 
 @dataclass(frozen=True, slots=True)
 class GraspTrace:
-    """Everything one trial recorded, one row per control period."""
+    """Everything one trial recorded, one row per control period.
+
+    A trace runs to the configured duration unless the object left the hand
+    first, in which case ``released`` is true and the last row is the sample on
+    which the slide passed the drop distance.
+    """
 
     config: TrialConfig
     grasp: GraspDefinition
     item: GraspObject
     feasible: Feasibility
+    released: bool
     contact_stiffness: float
     time: NDArray[np.float64]
     emg_open: NDArray[np.float64]
@@ -288,6 +302,8 @@ def simulate(
     phase = GraspPhase.REACH
     refractory = 0.0
     response = config.controller.slip_response
+    released = False
+    recorded = steps
 
     for step in range(steps):
         time = float(times[step])
@@ -364,32 +380,42 @@ def simulate(
         phases[step] = int(phase)
         modes[step] = output.mode
 
+        # The object has passed the drop distance, so it is out of the hand.
+        # This sample, the one on which it left, is recorded and the trial ends:
+        # there is no object left to press on, to slide, or to feel.
+        if slip_displacement > config.plant.drop_distance:
+            released = True
+            recorded = step + 1
+            break
+
+    end = slice(0, recorded)
     return GraspTrace(
         config=config,
         grasp=definition,
         item=item,
         feasible=feasibility(hand, definition, item),
+        released=released,
         contact_stiffness=stiffness,
-        time=times,
-        emg_open=emg_open,
-        emg_close=emg_close,
-        smoothed_open=trace["smoothed_open"],
-        smoothed_close=trace["smoothed_close"],
-        command_velocity=trace["command_velocity"],
-        closure=trace["closure"],
-        span=trace["span"],
-        indentation=trace["indentation"],
-        contact=contact_flags,
-        grip_force=trace["grip_force"],
-        commanded_force=trace["commanded_force"],
-        demanded_force=trace["demanded_force"],
-        friction_capacity=trace["capacity"],
-        tangential_load=trace["load"],
-        tactile=trace["tactile"],
-        slip_energy=trace["slip_energy"],
-        slip_detected=slip_flags,
-        slip_velocity=trace["slip_velocity"],
-        slip_displacement=trace["slip_displacement"],
-        phase=phases,
-        mode=modes,
+        time=times[end],
+        emg_open=emg_open[end],
+        emg_close=emg_close[end],
+        smoothed_open=trace["smoothed_open"][end],
+        smoothed_close=trace["smoothed_close"][end],
+        command_velocity=trace["command_velocity"][end],
+        closure=trace["closure"][end],
+        span=trace["span"][end],
+        indentation=trace["indentation"][end],
+        contact=contact_flags[end],
+        grip_force=trace["grip_force"][end],
+        commanded_force=trace["commanded_force"][end],
+        demanded_force=trace["demanded_force"][end],
+        friction_capacity=trace["capacity"][end],
+        tangential_load=trace["load"][end],
+        tactile=trace["tactile"][end],
+        slip_energy=trace["slip_energy"][end],
+        slip_detected=slip_flags[end],
+        slip_velocity=trace["slip_velocity"][end],
+        slip_displacement=trace["slip_displacement"][end],
+        phase=phases[end],
+        mode=modes[end],
     )

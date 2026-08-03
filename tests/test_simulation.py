@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import dataclasses
+import math
 
 import numpy as np
 import pytest
 
-from hand_controller.model import Feasibility, detect_contact, grasp, grasp_object
+from hand_controller.model import GRAVITY, Feasibility, detect_contact, grasp, grasp_object
 from hand_controller.pipeline import (
     EVALUATION_SET,
     GraspPhase,
@@ -34,9 +35,15 @@ def test_the_evaluation_set_covers_every_object_once(traces: tuple[GraspTrace, .
 
 
 def test_every_trace_has_one_row_per_control_period(traces: tuple[GraspTrace, ...]) -> None:
+    """Every column is the same length, and that length is the trial that ran.
+
+    A trial that keeps its object runs to the configured duration. One that
+    loses it ends on the sample the object left, which is shorter.
+    """
     for trace in traces:
-        expected = trace.config.steps
-        assert len(trace) == expected
+        expected = len(trace.time)
+        assert expected == trace.config.steps or trace.released
+        assert expected <= trace.config.steps
         for name in (
             "emg_open",
             "command_velocity",
@@ -100,6 +107,51 @@ def test_slip_displacement_never_decreases(traces: tuple[GraspTrace, ...]) -> No
     for trace in traces:
         assert bool(np.all(np.diff(trace.slip_displacement) >= 0.0))
         assert bool(np.all(trace.slip_velocity >= 0.0))
+
+
+def test_a_trial_ends_on_the_sample_the_object_leaves_the_hand(
+    traces: tuple[GraspTrace, ...],
+) -> None:
+    """The drop distance is a departure, not a marker passed on the way through.
+
+    Exactly one recorded sample may lie beyond the drop distance, and it must be
+    the last one. Anything else means the model went on simulating an object
+    that was no longer in the hand.
+    """
+    for trace in traces:
+        drop = trace.config.plant.drop_distance
+        beyond = trace.slip_displacement > drop
+        assert bool(beyond.any()) == trace.released
+        assert len(trace) <= trace.config.steps
+        if trace.released:
+            assert int(np.count_nonzero(beyond)) == 1
+            assert bool(beyond[-1])
+        else:
+            assert len(trace) == trace.config.steps
+            assert float(trace.slip_displacement[-1]) <= drop
+
+
+def test_no_object_slides_further_or_faster_than_it_can(
+    traces: tuple[GraspTrace, ...],
+) -> None:
+    """Two bounds on the slide, neither with a fitted constant in it.
+
+    The object leaves the hand at the drop distance, so it can never be recorded
+    further than one control period of travel past it. It starts at rest and its
+    acceleration is the weight less the friction capacity divided by the mass, so
+    it can never exceed gravity, and its speed after sliding a distance is at
+    most the free fall speed over that distance.
+
+    The first bound is the one that has teeth here. The model used to report a
+    slide of 8.50 m at 6636.33 mm/s for the object it dropped, four hundred
+    times the drop distance, because it went on sliding an object that had left
+    the hand two seconds earlier.
+    """
+    for trace in traces:
+        distance = float(trace.slip_displacement[-1])
+        peak = float(trace.slip_velocity.max())
+        assert distance <= trace.config.plant.drop_distance + peak * trace.config.dt
+        assert peak <= math.sqrt(2.0 * GRAVITY * distance)
 
 
 def test_the_deformable_object_needs_more_closure_than_the_rigid_one() -> None:

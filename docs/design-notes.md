@@ -300,6 +300,67 @@ than a length, so the budget can only be stated with a percentage attached. Give
 that the latency budget is one of the results this project reports, a filter
 whose delay is exactly its window length was worth the fifty element buffer.
 
+## Closed limitations
+
+### An object that has been dropped no longer slides through the fingers
+
+This section used to be a limitation. The model integrated the slide of an object
+for the whole trial, whether or not the object was still in the hand, and the
+note recorded that a failed trial therefore reported a slide of metres and that
+the displacement past the drop distance should not be read as a physical
+quantity. The excuse offered for keeping it was that a failed run then showed the
+commanded force saturating at the safety limit.
+
+The excuse did not survive being checked. In the failed trial the steel ball
+passes the 20 mm drop distance 0.066 s after the lift, and the commanded force
+first touches the 15.0 N limit 0.457 s later. The saturation the note was
+protecting was produced entirely by a ball that had been on the floor for almost
+half a second, and the demand ladder had climbed there by responding to the slip
+of an object that was no longer there. The slide the failure case reported,
+8.50 m at a peak speed of 6636.33 mm/s, was four hundred times the distance at
+which the object is declared lost and a hundred times the length of a finger. It
+was not a quantity about a hand.
+
+The trial now ends on the sample the object leaves the hand. `GraspTrace` carries
+a `released` flag and is as long as the trial lasted rather than as long as it was
+configured for, so every recorded row describes an object that was still between
+the fingers.
+
+What it bought. The failure case reports a slide of 20.35 mm at 588.23 mm/s,
+both physical, and `test_no_object_slides_further_or_faster_than_it_can` now
+holds every trial to the drop distance plus one control period of travel, and to
+the free fall speed over the distance it covered. The old model failed the first
+of those by four hundred times. The explanation of the failure is now the true
+one: the ball needs 19.221 N per contact against a 15.0 N limit and was never
+holdable, and it is also gone 0.066 s after the lift, before the 150 ms
+refractory interval allows a second slip response, so no ladder could have
+reached that force in time. The `slip_mm` column can print a distance for a lost
+object instead of the word gone.
+
+What it cost, in four places.
+
+* No trial of the evaluation set saturates the commanded force any more, so the
+  set no longer demonstrates the safety clamp. That claim now rests where it
+  should have rested all along, on the thousand adversarial inputs in
+  `tests/test_force.py`, which include infinities and quiet not a number values.
+* `peak_force` and `final_force` of the lost trial moved from pinned to bounded.
+  The trial now ends 60 ms into the rise that follows a slip response, which is
+  the ill conditioned region described below, and they move by up to 2.71e-2 N
+  under a 1e-12 perturbation against 7.0e-14 N for a trial that settles. They are
+  bounded by `final_command`, which is pinned and exact. Nothing else moved from
+  one group to the other: every other pinned field, both slip bounds, the test
+  that switches the slip response off to prove the bounds have teeth, and the
+  perturbation tests at 1e-12 and 1e-9 are untouched.
+* `steady_state_error` is now only meaningful for a trial that reached a steady
+  state. The lost trial stops in the middle of a transient and reports 5.457e-01
+  N, which is a fact about when the trial ended and not about the control law.
+  The tests say so explicitly rather than averaging it away.
+* A trace is no longer guaranteed to have one row per control period, so anything
+  reading `trace.config.steps` instead of `len(trace)` is now wrong.
+
+Nine of the ten trials are bit for bit unchanged, because an object that is held
+never reaches the drop distance.
+
 ## Known limitations
 
 This is a simulation with a simplified contact model. No real electromyogram is
@@ -316,14 +377,6 @@ one held on centre; and the friction capacity is the sum over the expected
 contacts of the coefficient of friction times the grip force, which assumes the
 load is shared equally and that every contact presses with the same force.
 Removing this would mean a contact solver and a rigid body integrator.
-
-**An object that has been dropped keeps sliding through the fingers.** The model
-does not remove an object once it has passed the drop distance, which is why a
-failed trial reports a slide of metres. That is deliberate, because it lets a
-failed run show the commanded force saturating at the safety limit, which is the
-interesting part. The metrics report a drop time instead of a displacement for
-these trials, and the displacement past the drop distance should not be read as a
-physical quantity.
 
 **Two site proportional control reaches few degrees of freedom.** One difference
 signal commands one velocity. Everything else, which grasp, how much force, and
@@ -352,15 +405,16 @@ increments, which is ill conditioned by construction. In the first control
 periods after a slip response it turns a relative 1e-12 change in the geometry
 into a seven percent change in grip force, and the deceleration of the sliding
 object then differs throughout the arrest. The settled force is identical either
-way, and every verdict, count and steady state quantity is exact, but
+way, and every verdict, count and settled quantity is exact, but
 ``slip_recovery_time`` moves by up to 19 control periods, ``total_slip`` by up to
-2.08 mm and ``peak_slip_speed`` by up to 43.8 percent between one arithmetic
-ordering and another. Those three are reported as measurements of a particular
-run and bounded rather than pinned in the regression suite; the reasoning and the
-numbers are recorded in the docstring of `tests/test_regression.py`. Removing
-this would mean an analytic derivative of the contact model in place of the
-secant, which would also remove the loop's ability to work on an object whose
-stiffness it does not know.
+2.08 mm, ``peak_slip_speed`` by up to 43.8 percent, and any force read before the
+transient has died by up to 2.71e-2 N, between one arithmetic ordering and
+another. Those are reported as measurements of a particular run and bounded
+rather than pinned in the regression suite; the reasoning and the numbers are
+recorded in the docstring of `tests/test_regression.py`. Removing this would mean
+an analytic derivative of the contact model in place of the secant, which would
+also remove the loop's ability to work on an object whose stiffness it does not
+know.
 
 **The thumb model conflates opposition with abduction.** Opposition is a single
 rotation of the thumb flexion plane, with the radial splay of the metacarpal held
