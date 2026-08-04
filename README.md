@@ -78,7 +78,10 @@ This object was never holdable. Five contacts at a friction coefficient of 0.10
 would need 19.221 N each to carry a weight of 9.611 N, which is 1.28 times the
 15.0 N per contact safety limit, and the limit exists because a hand that
 squeezes harder than that damages what it is holding and overloads its own
-actuator. The correct answer for this object is to refuse it.
+actuator. The correct answer for this object is to refuse it, and `select_grasp`
+does refuse it from the object properties alone: no grasp of the six brings the
+required force under the limit, not even the medium wrap that shares the load
+over six contacts instead of five.
 
 What the trace adds is that the loop never even gets to argue. Slip is detected
 6 ms after the ball starts to move, one response doubles the demand from 1.20 N
@@ -121,6 +124,26 @@ print(report.final_command)       # 2.6 N, after one slip response
 print(report.total_slip)          # 0.0036666003345815702 m
 print(report.slip_recovery_time)  # 0.073 s
 print(report.success)             # True
+```
+
+Whether to close on it at all, decided before the hand moves:
+
+```python
+from hand_controller import UnholdableObjectError, default_hand, grasp_object, select_grasp
+
+hand = default_hand()
+screen = select_grasp(hand, grasp_object("plastic_bottle"))
+
+print(screen.grasp_name)      # medium_wrap, on 6 contacts
+print(screen.required_force)  # 2.1247741666666666 N, the number the trial reports
+print(screen.margin)          # 7.059573782154888, the force ceiling over that
+
+try:
+    select_grasp(hand, grasp_object("steel_ball"))
+except UnholdableObjectError as error:
+    print(error)
+    # no grasp of the taxonomy holds steel_ball: the closest is medium_wrap,
+    # which needs 16.018 N per contact against a ceiling of 15.000 N
 ```
 
 The proportional control law and its latency:
@@ -235,6 +258,7 @@ sliding contact long before the static force reveals anything.
 | `pipeline/emg.py` | Simulated activation envelopes described as trapezoidal bursts |
 | `pipeline/simulation.py` | The closed loop, the tactile sensor model, and the recorded trace |
 | `pipeline/scenarios.py` | Named configurations shared by the examples, the tests and the regression file |
+| `pipeline/admissibility.py` | Whether a grasp may be closed on an object at all, from its span range, the safety limit and the crush limit |
 | `analysis/metrics.py` | Success verdicts, timings, force statistics, and slip episodes |
 | `analysis/report.py` | Fixed width text rendering of every result table |
 | `analysis/figures.py` | Every figure, and the only module that imports Matplotlib |
@@ -543,8 +567,8 @@ uv run mypy
 uv run pytest --cov=src/hand_controller --cov-report=term-missing
 ```
 
-There are 2909 tests, the suite runs in about forty seconds, and statement
-coverage of `src/hand_controller` is 98.56 percent. CI enforces
+There are 2960 tests, the suite runs in about forty seconds, and statement
+coverage of `src/hand_controller` is 98.62 percent. CI enforces
 `--cov-fail-under=96`, which is the measured value rounded down less two, so that
 a genuine regression fails the build and a one line refactor does not.
 
@@ -557,9 +581,10 @@ dead zone and non zero at every point outside it, that a strong single site
 contraction never triggers a mode switch at any of 201 activation levels, that
 contact detection fires when and only when the indentation is positive across
 2001 points spanning the sign change, that injected slip is detected and the
-resulting force increase stops it, and that the commanded force stays inside the
+resulting force increase stops it, that the commanded force stays inside the
 safety interval under a thousand adversarial inputs including infinities and
-quiet not a number values.
+quiet not a number values, and that the admissibility screen and the closed loop
+reach the same verdict on all ten objects of the evaluation set.
 
 The regression tier recomputes the whole evaluation set and compares it against
 `tests/data/reference_run.json`. Which quantities are pinned was decided by
