@@ -63,10 +63,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     print("Latency")
     proportional = command_latency(config, arguments.dt)
     switch = mode_switch_latency(config, switching, arguments.dt)
-    print(f"proportional path   {proportional * 1e3:.1f} ms of a {config.latency_budget * 1e3:.0f}"
-          f" ms budget, met: {proportional <= config.latency_budget}")
-    print(f"mode switch         {switch * 1e3:.1f} ms of a {switching.latency_budget * 1e3:.0f}"
-          f" ms budget, met: {switch <= switching.latency_budget}")
+    print(
+        f"proportional path   {proportional * 1e3:.1f} ms of a {config.latency_budget * 1e3:.0f}"
+        f" ms budget, met: {proportional <= config.latency_budget}"
+    )
+    print(
+        f"mode switch         {switch * 1e3:.1f} ms of a {switching.latency_budget * 1e3:.0f}"
+        f" ms budget, met: {switch <= switching.latency_budget}"
+    )
 
     controller = MyoelectricController(config, switching, arguments.dt, mode_count=6)
     start = time.perf_counter()
@@ -74,8 +78,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         controller.update(0.05, 0.55, arguments.dt)
     elapsed = time.perf_counter() - start
     per_step = elapsed / arguments.timing_steps
-    print(f"compute per period  {per_step * 1e6:.1f} us against a {arguments.dt * 1e6:.0f} us"
-          f" period, real time factor {arguments.dt / per_step:.0f}")
+    print(
+        f"compute per period  {per_step * 1e6:.1f} us against a {arguments.dt * 1e6:.0f} us"
+        f" period, real time factor {arguments.dt / per_step:.0f}"
+    )
 
     print()
     print("Co-contraction recognition, one row per input pattern")

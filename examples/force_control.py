@@ -58,10 +58,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         effective = effective_stiffness(pad, stiffness)
         force = equilibrium_force(width - 2.0 * indentation, width, pad, stiffness)
         travel = indentation_for_force(2.0, effective, pad.exponent)
-        print(
-            f"{stiffness:>18.3g}{effective:>12.4g}{force:>10.3f}{travel * 1e3:>18.3f}"
-            f"   {label}"
-        )
+        print(f"{stiffness:>18.3g}{effective:>12.4g}{force:>10.3f}{travel * 1e3:>18.3f}   {label}")
 
     traces = []
     for name in arguments.objects:

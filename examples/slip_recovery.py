@@ -100,8 +100,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     print(f"slip with response on     {on_metrics.total_slip * 1e3:.2f} mm")
     print(f"drop time, response off   {off_drop} after the lift")
     print(
-        f"outcome on                "
-        f"{'success' if on_metrics.success else on_metrics.failure.value}"
+        f"outcome on                {'success' if on_metrics.success else on_metrics.failure.value}"
     )
     print(
         f"outcome off               "

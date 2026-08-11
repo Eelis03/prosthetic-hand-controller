@@ -277,9 +277,7 @@ def test_trial_forces_match_the_reference(
     assert current["required_force"] == pytest.approx(
         stored["required_force"], rel=CLOSED_FORM_TOLERANCE
     )
-    assert current["final_command"] == pytest.approx(
-        stored["final_command"], abs=FORCE_TOLERANCE
-    )
+    assert current["final_command"] == pytest.approx(stored["final_command"], abs=FORCE_TOLERANCE)
     if stored["held"]:
         for key in ("final_force", "peak_force"):
             assert current[key] == pytest.approx(stored[key], abs=FORCE_TOLERANCE), key
@@ -364,27 +362,21 @@ def test_the_pinned_fields_survive_a_negligible_perturbation(
         assert other.failure == baseline.failure, name
         assert other.slip_events == baseline.slip_events, name
         assert other.force_saturated == baseline.force_saturated, name
-        assert (other.slip_recovery_time is None) == (
-            baseline.slip_recovery_time is None
-        ), name
+        assert (other.slip_recovery_time is None) == (baseline.slip_recovery_time is None), name
         assert (other.drop_time is None) == (baseline.drop_time is None), name
         assert other.time_to_contact == pytest.approx(
             baseline.time_to_contact, abs=TIME_TOLERANCE
         ), name
-        assert other.time_to_grip == pytest.approx(
-            baseline.time_to_grip, abs=TIME_TOLERANCE
-        ), name
-        assert other.final_command == pytest.approx(
-            baseline.final_command, abs=FORCE_TOLERANCE
-        ), name
+        assert other.time_to_grip == pytest.approx(baseline.time_to_grip, abs=TIME_TOLERANCE), name
+        assert other.final_command == pytest.approx(baseline.final_command, abs=FORCE_TOLERANCE), (
+            name
+        )
         if other.drop_time is not None and baseline.drop_time is not None:
             assert other.drop_time == pytest.approx(baseline.drop_time, abs=TIME_TOLERANCE), name
         if other.slip_recovery_time is not None:
             assert 0.0 < other.slip_recovery_time <= RECOVERY_BOUND, name
         if other.drop_time is None:
-            assert other.peak_force == pytest.approx(
-                baseline.peak_force, abs=FORCE_TOLERANCE
-            ), name
+            assert other.peak_force == pytest.approx(baseline.peak_force, abs=FORCE_TOLERANCE), name
             assert other.total_slip <= SLIP_BOUND, name
         else:
             assert 0.0 < other.peak_force < other.final_command, name

@@ -312,9 +312,7 @@ def simulate(
         if output.switched and phase is GraspPhase.REACH and closure <= 0.0:
             definition = catalogue[output.mode]
             contacts = definition.load_bearing_contacts
-            previous_indentation = penetration(
-                opposition_span(hand, definition, 0.0), item.width
-            )
+            previous_indentation = penetration(opposition_span(hand, definition, 0.0), item.width)
 
         rate = output.velocity if phase is GraspPhase.REACH else regulator.update(force, dt)
         closure = min(max(closure + rate * dt, 0.0), 1.0)
@@ -330,9 +328,11 @@ def simulate(
         if phase is GraspPhase.REACH and force >= config.controller.force.contact_force_threshold:
             phase = GraspPhase.LOAD
             regulator.demand(config.controller.force.nominal_force)
-        elif phase is GraspPhase.LOAD and abs(
-            regulator.commanded_force - config.controller.force.nominal_force
-        ) <= config.controller.force.tolerance:
+        elif (
+            phase is GraspPhase.LOAD
+            and abs(regulator.commanded_force - config.controller.force.nominal_force)
+            <= config.controller.force.tolerance
+        ):
             phase = GraspPhase.HOLD
 
         load = item.mass * GRAVITY if time >= config.lift_time else 0.0

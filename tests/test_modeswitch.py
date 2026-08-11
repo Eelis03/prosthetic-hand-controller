@@ -116,9 +116,7 @@ def test_the_recogniser_resets() -> None:
     assert switcher.mode == 2
 
 
-@pytest.mark.parametrize(
-    ("mode_count", "initial"), [(0, 0), (3, -1), (3, 3)]
-)
+@pytest.mark.parametrize(("mode_count", "initial"), [(0, 0), (3, -1), (3, 3)])
 def test_the_recogniser_validates_its_mode_range(mode_count: int, initial: int) -> None:
     with pytest.raises(ValueError):
         ModeSwitcher(SWITCHING, mode_count=mode_count, initial_mode=initial)

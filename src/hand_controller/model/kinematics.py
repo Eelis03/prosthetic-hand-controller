@@ -115,9 +115,7 @@ def _chain(
     return points
 
 
-def digit_points(
-    hand: HandModel, config: HandConfiguration, digit: Digit
-) -> NDArray[np.float64]:
+def digit_points(hand: HandModel, config: HandConfiguration, digit: Digit) -> NDArray[np.float64]:
     """Return the four joint centres of ``digit``, base first and fingertip last.
 
     For a finger the rows are the metacarpophalangeal, proximal interphalangeal

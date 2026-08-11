@@ -74,9 +74,12 @@ def test_example_writes_figures(tmp_path: Path, capsys: pytest.CaptureFixture[st
     """The figure writing path is exercised at least once."""
     module = _load("force_control")
     arguments = (
-        "--objects", "foam_cup",
-        "--duration", "1.4",
-        "--figure-dir", str(tmp_path),
+        "--objects",
+        "foam_cup",
+        "--duration",
+        "1.4",
+        "--figure-dir",
+        str(tmp_path),
     )
     assert module.main(arguments) == 0
     capsys.readouterr()
@@ -97,9 +100,12 @@ def test_control_example_writes_its_figure(
 ) -> None:
     module = _load("proportional_control")
     arguments = (
-        "--samples", "201",
-        "--timing-steps", "200",
-        "--figure-dir", str(tmp_path),
+        "--samples",
+        "201",
+        "--timing-steps",
+        "200",
+        "--figure-dir",
+        str(tmp_path),
     )
     assert module.main(arguments) == 0
     capsys.readouterr()
@@ -122,15 +128,17 @@ def test_the_readme_figure_script_writes_exactly_the_published_pair(
     assert f"total {total} bytes" in captured.out
 
 
-def test_slip_example_writes_its_figure(
-    tmp_path: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
+def test_slip_example_writes_its_figure(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
     module = _load("slip_recovery")
     arguments = (
-        "--duration", "1.4",
-        "--lift-time", "0.9",
-        "--detail", "drinking_glass",
-        "--figure-dir", str(tmp_path),
+        "--duration",
+        "1.4",
+        "--lift-time",
+        "0.9",
+        "--detail",
+        "drinking_glass",
+        "--figure-dir",
+        str(tmp_path),
     )
     assert module.main(arguments) == 0
     capsys.readouterr()

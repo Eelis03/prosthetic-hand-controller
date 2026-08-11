@@ -3,7 +3,7 @@
 Grasp taxonomy, proportional myoelectric control, and a simulated force feedback loop.
 
 [![CI](https://github.com/Eelis03/prosthetic-hand-controller/actions/workflows/ci.yml/badge.svg)](https://github.com/Eelis03/prosthetic-hand-controller/actions/workflows/ci.yml)
-[![Python](https://img.shields.io/badge/python-3.12-blue)](https://www.python.org/downloads/)
+[![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue)](https://www.python.org/downloads/)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
 ![Grip force and slide against time for a plastic bottle. The detector fires 7 ms after the slide starts, the demand doubles from 1.20 N to 2.60 N, and the slide is arrested after 73 ms and 3.67 mm. The same object with the response switched off is out of the hand 96 ms after the lift.](docs/figures/slip_recovery.png)
@@ -90,7 +90,9 @@ than half way through that interval. A ladder that climbs a factor of two every
 
 ## Installation
 
-Requires Python 3.12 or later.
+Requires Python 3.12 or later. CI runs the whole suite on 3.12 and 3.13, on
+Linux and on Windows, so the version floor in `pyproject.toml` is a tested claim
+rather than a declared one.
 
 ```bash
 git clone https://github.com/Eelis03/prosthetic-hand-controller.git
@@ -116,11 +118,11 @@ from hand_controller import reference_trial, simulate, summarise
 trace = simulate(reference_trial("plastic_bottle"))
 report = summarise(trace)
 
-print(report.required_force)      # 2.1247741666666666 N
-print(report.final_command)       # 2.6 N, after one slip response
-print(report.total_slip)          # 0.0036666003345815702 m
+print(report.required_force)  # 2.1247741666666666 N
+print(report.final_command)  # 2.6 N, after one slip response
+print(report.total_slip)  # 0.0036666003345815702 m
 print(report.slip_recovery_time)  # 0.073 s
-print(report.success)             # True
+print(report.success)  # True
 ```
 
 The proportional control law and its latency:
@@ -129,9 +131,9 @@ The proportional control law and its latency:
 from hand_controller import ProportionalConfig, command_latency, control_law
 
 config = ProportionalConfig()
-print(control_law(config, 0.05))       # 0.0, inside the dead zone
-print(control_law(config, 0.40))       # 0.7333333333333335 closure per second
-print(control_law(config, 0.90))       # 1.25, saturated
+print(control_law(config, 0.05))  # 0.0, inside the dead zone
+print(control_law(config, 0.40))  # 0.7333333333333335 closure per second
+print(control_law(config, 0.90))  # 1.25, saturated
 print(command_latency(config, 0.001))  # 0.047 s against a 0.100 s budget
 ```
 
@@ -143,8 +145,8 @@ from hand_controller.model import default_pad
 
 hand, pad = default_hand(), default_pad()
 wrap = grasp("medium_wrap")
-print(opposition_span(hand, wrap, 0.0))             # 0.0722197196034674 m
-print(opposition_span(hand, wrap, 1.0))             # 0.02772522459903626 m
+print(opposition_span(hand, wrap, 0.0))  # 0.0722197196034674 m
+print(opposition_span(hand, wrap, 1.0))  # 0.02772522459903626 m
 print(equilibrium_force(0.061, 0.065, pad, 5.0e7))  # 17.233087623506012 N
 print(equilibrium_force(0.061, 0.065, pad, 8.0e3))  # 0.6061472451217309 N
 ```
@@ -539,6 +541,7 @@ was most recently closed and what closing it changed.
 ```bash
 uv run pytest -q
 uv run ruff check .
+uv run ruff format --check .
 uv run mypy
 uv run pytest --cov=src/hand_controller --cov-report=term-missing
 ```
