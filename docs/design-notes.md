@@ -187,6 +187,38 @@ requirement that the previously demanded force has actually been delivered.
 Without the second condition the ladder climbs on transport delay rather than on
 evidence, and the force ends far above what the object needed.
 
+### Refusing an object before the reach
+
+The loop is blind by design: it starts light and raises the force only on
+tactile evidence, so the way it learns that an object is too heavy or too
+slippery is by dropping it. That is right for a controller and wrong for a hand
+that is about to reach. The steel ball needed 19.221 N per contact against a
+15.0 N limit and was never holdable, and until now nothing in the package could
+say so before the trial that says it by failing.
+
+The screen in `pipeline/admissibility.py` says it from statics. It compares the
+force the object needs, which follows from its mass, its friction coefficient
+and the contact expectation of the grasp, against the lower of two ceilings: the
+safety limit of the force loop and the crush limit of the object. It lives in
+`pipeline` rather than in `model` because those two ceilings come from different
+layers, and `pipeline` is the layer that already imports both.
+
+Two decisions inside it. The crush limit is reported before the safety limit
+when both are passed, because an object that only exceeds the limit would be
+held by a stronger hand while one that breaks below the force it needs is held
+by none, so that is the refusal worth naming. And the ranking is by force
+headroom alone: the screen knows an object's width but nothing about its shape,
+so it prefers the grasp that shares the load over the most contacts among those
+that fit, and returns a medium wrap for the apple where the evaluation set uses
+a power sphere because the apple is round. Choosing the grasp that suits the
+shape stays with the user, which is where a two site interface leaves it anyway.
+
+What it is not is a prediction. A grasp it admits is one the loop could hold if
+it found the force; how long the loop takes and how far the object slides on the
+way remain questions only a trace answers. The tests assert the two agree on all
+ten objects of the evaluation set, which is a claim about both rather than a
+restatement of one.
+
 ## Rejected alternatives
 
 ### Pattern recognition control

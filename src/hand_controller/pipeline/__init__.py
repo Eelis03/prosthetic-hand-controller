@@ -1,5 +1,13 @@
-"""Closed loop grasp simulation and the named configurations that drive it."""
+"""Closed loop grasp simulation, the configurations that drive it, and what to refuse."""
 
+from hand_controller.pipeline.admissibility import (
+    Admissibility,
+    GraspScreen,
+    UnholdableObjectError,
+    screen_grasp,
+    screen_taxonomy,
+    select_grasp,
+)
 from hand_controller.pipeline.emg import (
     EmgBurst,
     EmgProfile,
@@ -29,15 +37,18 @@ from hand_controller.pipeline.simulation import (
 
 __all__ = [
     "EVALUATION_SET",
+    "Admissibility",
     "ControllerConfig",
     "EmgBurst",
     "EmgProfile",
     "EmgSite",
     "GraspPhase",
+    "GraspScreen",
     "GraspTrace",
     "PlantConfig",
     "TactileConfig",
     "TrialConfig",
+    "UnholdableObjectError",
     "co_contraction_profile",
     "evaluation_pairs",
     "grasp_for_object",
@@ -45,6 +56,9 @@ __all__ = [
     "reaching_profile",
     "reference_trial",
     "run_evaluation",
+    "screen_grasp",
+    "screen_taxonomy",
+    "select_grasp",
     "simulate",
     "tactile_signal",
     "without_slip_response",

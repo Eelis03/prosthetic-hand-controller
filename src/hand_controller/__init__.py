@@ -36,10 +36,13 @@ from hand_controller.model import (
 )
 from hand_controller.pipeline import (
     EVALUATION_SET,
+    GraspScreen,
     GraspTrace,
     TrialConfig,
+    UnholdableObjectError,
     reference_trial,
     run_evaluation,
+    select_grasp,
     simulate,
 )
 
@@ -53,6 +56,7 @@ __all__ = [
     "GraspDefinition",
     "GraspMetrics",
     "GraspObject",
+    "GraspScreen",
     "GraspTrace",
     "HandConfiguration",
     "MyoelectricController",
@@ -61,6 +65,7 @@ __all__ = [
     "SlipDetectorConfig",
     "SlipResponseConfig",
     "TrialConfig",
+    "UnholdableObjectError",
     "__version__",
     "command_latency",
     "control_law",
@@ -75,6 +80,7 @@ __all__ = [
     "opposition_span",
     "reference_trial",
     "run_evaluation",
+    "select_grasp",
     "simulate",
     "success_rate",
     "summarise",
