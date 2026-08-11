@@ -12,4 +12,7 @@ outputs/
 # Anchored to the repository root. A bare "figures/" would also match
 # docs/figures, which is tracked and published in the README.
 /figures/
+.coverage
+.coverage.*
+htmlcov/
 .DS_Store
