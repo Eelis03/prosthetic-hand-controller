@@ -136,8 +136,7 @@ def screen_taxonomy(
 ) -> tuple[GraspScreen, ...]:
     """Screen every grasp of the taxonomy against one object, in taxonomy order."""
     return tuple(
-        screen_grasp(hand, definition, item, force, safety_factor)
-        for definition in GRASP_TAXONOMY
+        screen_grasp(hand, definition, item, force, safety_factor) for definition in GRASP_TAXONOMY
     )
 
 

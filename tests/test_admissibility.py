@@ -56,9 +56,7 @@ def test_the_requirement_is_the_force_the_metrics_report(
 
 
 @pytest.mark.parametrize(("object_name", "grasp_name"), EVALUATION_SET)
-def test_the_margin_is_the_ceiling_over_the_requirement(
-    object_name: str, grasp_name: str
-) -> None:
+def test_the_margin_is_the_ceiling_over_the_requirement(object_name: str, grasp_name: str) -> None:
     item = grasp_object(object_name)
     screen = screen_grasp(HAND, grasp(grasp_name), item)
     assert screen.force_ceiling == min(LIMIT, item.crush_force)

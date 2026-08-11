@@ -136,9 +136,9 @@ from hand_controller import UnholdableObjectError, default_hand, grasp_object, s
 hand = default_hand()
 screen = select_grasp(hand, grasp_object("plastic_bottle"))
 
-print(screen.grasp_name)      # medium_wrap, on 6 contacts
+print(screen.grasp_name)  # medium_wrap, on 6 contacts
 print(screen.required_force)  # 2.1247741666666666 N, the number the trial reports
-print(screen.margin)          # 7.059573782154888, the force ceiling over that
+print(screen.margin)  # 7.059573782154888, the force ceiling over that
 
 try:
     select_grasp(hand, grasp_object("steel_ball"))
