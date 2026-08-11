@@ -166,9 +166,7 @@ def grasp_object(name: str) -> GraspObject:
     raise KeyError(f"unknown object: {name!r}; known objects are {', '.join(OBJECT_NAMES)}")
 
 
-def feasibility(
-    hand: HandModel, definition: GraspDefinition, item: GraspObject
-) -> Feasibility:
+def feasibility(hand: HandModel, definition: GraspDefinition, item: GraspObject) -> Feasibility:
     """Report whether ``definition`` can enclose ``item`` at all.
 
     The grasp sweeps its span from the open value down to the closed value. An

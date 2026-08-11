@@ -116,9 +116,7 @@ class ModeSwitchResult:
 class ModeSwitcher:
     """Cycles through the available grasps on a confirmed co-contraction."""
 
-    def __init__(
-        self, config: CoContractionConfig, mode_count: int, initial_mode: int = 0
-    ) -> None:
+    def __init__(self, config: CoContractionConfig, mode_count: int, initial_mode: int = 0) -> None:
         if mode_count < 1:
             raise ValueError(f"mode_count must be at least 1, got {mode_count}")
         if not 0 <= initial_mode < mode_count:

@@ -165,9 +165,7 @@ class ProportionalForceRegulator:
         if abs(self._previous_step) <= 0.0:
             return
         raw = (measured_force - self._previous_force) / self._previous_step
-        bounded = min(
-            max(raw, self._config.minimum_stiffness), self._config.maximum_stiffness
-        )
+        bounded = min(max(raw, self._config.minimum_stiffness), self._config.maximum_stiffness)
         weight = dt / (self._config.stiffness_time_constant + dt)
         self._stiffness += weight * (bounded - self._stiffness)
 

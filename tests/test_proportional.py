@@ -57,9 +57,7 @@ def test_the_characteristic_is_strictly_increasing_between_the_dead_zone_and_sat
 def test_the_command_saturates_at_the_configured_limit() -> None:
     assert float(np.abs(COMMANDS).max()) == pytest.approx(CONFIG.saturation, abs=0.0)
     above = np.abs(DIFFERENCES) >= saturation_difference(CONFIG)
-    np.testing.assert_allclose(
-        np.abs(COMMANDS[above]), CONFIG.saturation, atol=0.0, rtol=0.0
-    )
+    np.testing.assert_allclose(np.abs(COMMANDS[above]), CONFIG.saturation, atol=0.0, rtol=0.0)
 
 
 def test_saturation_difference_is_the_first_saturating_input() -> None:

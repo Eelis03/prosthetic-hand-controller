@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Prosthetic Hand Controller"
+abstract: >-
+  Grasp taxonomy, proportional myoelectric control, and a simulated force
+  feedback loop, evaluated by closing on ten objects and measuring which are
+  held against a fingertip friction coefficient the controller is never told.
+type: software
+authors:
+  - family-names: Yilmaz
+    given-names: Emre
+repository-code: "https://github.com/Eelis03/prosthetic-hand-controller"
+license: MIT
+version: "0.1.0"
+date-released: "2026-08-11"
+keywords:
+  - prosthetics
+  - grasp
+  - myoelectric-control
+  - robotic-hand
+  - python

@@ -177,8 +177,7 @@ _TAXONOMY: Final[tuple[GraspDefinition, ...]] = (
         closed_posture=_posture((50.0, 48.0, 46.0, 44.0), (2.0, 1.0, -1.0, -2.0), 40.0, 42.0),
         contact_digits=(Digit.THUMB, Digit.INDEX, Digit.MIDDLE, Digit.RING, Digit.LITTLE),
         palm_contact=False,
-        description="Thumb opposed to all four fingertips on a flat object held clear"
-        " of the palm.",
+        description="Thumb opposed to all four fingertips on a flat object held clear of the palm.",
     ),
     GraspDefinition(
         name="palmar_pinch",

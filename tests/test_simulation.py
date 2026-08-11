@@ -219,9 +219,7 @@ def test_the_trial_configuration_rejects_impossible_timing(field: str, value: fl
 @pytest.mark.parametrize(
     ("field", "value"), [("slip_gain", -1.0), ("slip_frequency", 0.0), ("noise_std", -1.0)]
 )
-def test_the_tactile_configuration_rejects_impossible_parameters(
-    field: str, value: float
-) -> None:
+def test_the_tactile_configuration_rejects_impossible_parameters(field: str, value: float) -> None:
     with pytest.raises(ValueError):
         TactileConfig(**{field: value})
 

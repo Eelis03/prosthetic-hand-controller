@@ -49,11 +49,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     config = reference_trial(arguments.object, duration=arguments.duration, dt=arguments.dt)
     written = [
         plot_slip_recovery(
-            simulate(config), simulate(without_slip_response(config)),
+            simulate(config),
+            simulate(without_slip_response(config)),
             directory / "slip_recovery.png",
         ),
         plot_grasp_postures(
-            default_hand(), grasp("medium_wrap"), tuple(arguments.widths),
+            default_hand(),
+            grasp("medium_wrap"),
+            tuple(arguments.widths),
             directory / "grasp_postures.png",
         ),
     ]

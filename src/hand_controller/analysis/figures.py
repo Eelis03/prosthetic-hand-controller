@@ -101,29 +101,48 @@ def plot_force_profile(trace: GraspTrace, path: Path) -> Path:
     """Draw grip force, commanded force, slip and the tactile signal of one trial."""
     figure, axes = plt.subplots(3, 1, figsize=(6.8, 7.2), sharex=True)
 
-    axes[0].plot(trace.time, trace.commanded_force, color="#999999", linewidth=1.2,
-                 label="commanded")
+    axes[0].plot(
+        trace.time, trace.commanded_force, color="#999999", linewidth=1.2, label="commanded"
+    )
     axes[0].plot(trace.time, trace.grip_force, color="#1f4e79", linewidth=1.6, label="measured")
-    axes[0].plot(trace.time, trace.tangential_load, color="#a33", linewidth=1.0,
-                 linestyle="--", label="tangential load")
-    axes[0].plot(trace.time, trace.friction_capacity, color="#2a7", linewidth=1.0,
-                 label="friction capacity")
+    axes[0].plot(
+        trace.time,
+        trace.tangential_load,
+        color="#a33",
+        linewidth=1.0,
+        linestyle="--",
+        label="tangential load",
+    )
+    axes[0].plot(
+        trace.time, trace.friction_capacity, color="#2a7", linewidth=1.0, label="friction capacity"
+    )
     axes[0].set_ylabel("force, N")
     axes[0].set_title(f"{trace.item.name} held in a {trace.grasp.name} grasp")
     axes[0].grid(alpha=0.3)
     axes[0].legend(fontsize=8, loc="upper left")
 
     axes[1].plot(trace.time, trace.span * 1000.0, color="#1f4e79", linewidth=1.4, label="span")
-    axes[1].axhline(trace.item.width * 1000.0, color="#a33", linestyle="--", linewidth=1.0,
-                    label="object width")
+    axes[1].axhline(
+        trace.item.width * 1000.0, color="#a33", linestyle="--", linewidth=1.0, label="object width"
+    )
     axes[1].set_ylabel("span, mm")
     axes[1].grid(alpha=0.3)
     axes[1].legend(fontsize=8, loc="upper right")
 
-    axes[2].plot(trace.time, trace.slip_displacement * 1000.0, color="#1f4e79", linewidth=1.4,
-                 label="slip displacement")
-    axes[2].plot(trace.time, trace.slip_detected.astype(float), color="#a33", linewidth=1.0,
-                 label="slip detected")
+    axes[2].plot(
+        trace.time,
+        trace.slip_displacement * 1000.0,
+        color="#1f4e79",
+        linewidth=1.4,
+        label="slip displacement",
+    )
+    axes[2].plot(
+        trace.time,
+        trace.slip_detected.astype(float),
+        color="#a33",
+        linewidth=1.0,
+        label="slip detected",
+    )
     axes[2].set_xlabel("time, s")
     axes[2].set_ylabel("mm, and detector flag")
     axes[2].grid(alpha=0.3)
@@ -163,35 +182,51 @@ def plot_slip_recovery(
     figure, axes = plt.subplots(2, 1, figsize=(6.0, 4.2), sharex=True)
 
     axes[0].plot(
-        with_response.time[on], with_response.grip_force[on], color=_ON, linewidth=1.7,
+        with_response.time[on],
+        with_response.grip_force[on],
+        color=_ON,
+        linewidth=1.7,
         label="slip response on",
     )
     axes[0].plot(
-        without_response.time[off], without_response.grip_force[off], color=_OFF,
-        linewidth=1.5, linestyle="--", label="slip response off",
+        without_response.time[off],
+        without_response.grip_force[off],
+        color=_OFF,
+        linewidth=1.5,
+        linestyle="--",
+        label="slip response off",
     )
     axes[0].axhline(
-        required, color=_RULE, linewidth=1.0, linestyle=":",
+        required,
+        color=_RULE,
+        linewidth=1.0,
+        linestyle=":",
         label=f"force needed to hold, {required:.2f} N",
     )
     axes[0].set_ylabel("grip force, N")
     axes[0].set_title(
-        f"{with_response.item.name} slipping at the lift, "
-        f"{with_response.grasp.name} grasp"
+        f"{with_response.item.name} slipping at the lift, {with_response.grasp.name} grasp"
     )
     axes[0].grid(alpha=0.3)
     axes[0].legend(fontsize=8, loc="center right", framealpha=0.92)
 
     axes[1].plot(
-        with_response.time[on], with_response.slip_displacement[on] * 1e3, color=_ON,
+        with_response.time[on],
+        with_response.slip_displacement[on] * 1e3,
+        color=_ON,
         linewidth=1.7,
     )
     axes[1].plot(
-        without_response.time[off], without_response.slip_displacement[off] * 1e3,
-        color=_OFF, linewidth=1.5, linestyle="--",
+        without_response.time[off],
+        without_response.slip_displacement[off] * 1e3,
+        color=_OFF,
+        linewidth=1.5,
+        linestyle="--",
     )
     axes[1].axhline(
-        with_response.config.plant.drop_distance * 1e3, color=_RULE, linewidth=1.0,
+        with_response.config.plant.drop_distance * 1e3,
+        color=_RULE,
+        linewidth=1.0,
         linestyle=":",
     )
 
@@ -199,7 +234,9 @@ def plot_slip_recovery(
         axes[1].annotate(
             text,
             xy=(trace.time[index], trace.slip_displacement[index] * 1e3),
-            xytext=where, textcoords="axes fraction", fontsize=8,
+            xytext=where,
+            textcoords="axes fraction",
+            fontsize=8,
             arrowprops={"arrowstyle": "->", "color": _RULE, "linewidth": 0.9},
         )
 
@@ -210,32 +247,47 @@ def plot_slip_recovery(
         began, stopped = episodes[0]
         first = int(detected[0])
         axes[1].plot(
-            with_response.time[first], with_response.slip_displacement[first] * 1e3,
-            marker="o", color=_ON, markersize=4,
+            with_response.time[first],
+            with_response.slip_displacement[first] * 1e3,
+            marker="o",
+            color=_ON,
+            markersize=4,
         )
         label(
             f"detected {(first - began) * dt * 1e3:.0f} ms after the slide starts",
-            first, with_response, (0.02, 0.42),
+            first,
+            with_response,
+            (0.02, 0.42),
         )
         if stopped is not None:
             axes[1].plot(
-                with_response.time[stopped], with_response.slip_displacement[stopped] * 1e3,
-                marker="o", color=_ON, markersize=4,
+                with_response.time[stopped],
+                with_response.slip_displacement[stopped] * 1e3,
+                marker="o",
+                color=_ON,
+                markersize=4,
             )
             label(
                 f"held after {(stopped - began) * dt * 1e3:.0f} ms "
                 f"and {with_response.slip_displacement[stopped] * 1e3:.2f} mm",
-                stopped, with_response, (0.56, 0.06),
+                stopped,
+                with_response,
+                (0.56, 0.06),
             )
     if without_response.released:
         last = len(without_response) - 1
         axes[1].plot(
-            without_response.time[last], without_response.slip_displacement[last] * 1e3,
-            marker="x", color=_OFF, markersize=7,
+            without_response.time[last],
+            without_response.slip_displacement[last] * 1e3,
+            marker="x",
+            color=_OFF,
+            markersize=7,
         )
         label(
             f"out of the hand {(without_response.time[last] - lift) * 1e3:.0f} ms after the lift",
-            last, without_response, (0.10, 0.80),
+            last,
+            without_response,
+            (0.10, 0.80),
         )
 
     axes[1].set_xlabel("time, s")
@@ -275,7 +327,11 @@ def plot_grasp_postures(
         config = definition.posture(closure)
 
         axis.plot(
-            [0.0, 92.0], [0.0, 0.0], color="#c8c8c8", linewidth=9.0, solid_capstyle="round",
+            [0.0, 92.0],
+            [0.0, 0.0],
+            color="#c8c8c8",
+            linewidth=9.0,
+            solid_capstyle="round",
             zorder=1,
         )
         thumb_tip = digit_points(hand, config, Digit.THUMB)[3]
@@ -286,20 +342,35 @@ def plot_grasp_postures(
         centre = 0.5 * (thumb_tip + tips.mean(axis=0)) * 1e3
         axis.add_patch(
             Circle(
-                (float(centre[0]), float(centre[2])), 0.5 * width * 1e3,
-                facecolor="#f2dda8", edgecolor="#8a7330", linewidth=1.0, zorder=0,
+                (float(centre[0]), float(centre[2])),
+                0.5 * width * 1e3,
+                facecolor="#f2dda8",
+                edgecolor="#8a7330",
+                linewidth=1.0,
+                zorder=0,
             )
         )
         for digit in (Digit.THUMB, *FINGERS):
             points = digit_points(hand, config, digit) * 1e3
             colour = _OFF if digit is Digit.THUMB else _ON
             axis.plot(
-                points[:, 0], points[:, 2], color=colour, linewidth=2.0,
-                solid_capstyle="round", zorder=2,
+                points[:, 0],
+                points[:, 2],
+                color=colour,
+                linewidth=2.0,
+                solid_capstyle="round",
+                zorder=2,
             )
             axis.plot(
-                points[:, 0], points[:, 2], linestyle="none", marker="o", color="white",
-                markersize=3.4, markeredgecolor=colour, markeredgewidth=1.0, zorder=3,
+                points[:, 0],
+                points[:, 2],
+                linestyle="none",
+                marker="o",
+                color="white",
+                markersize=3.4,
+                markeredgecolor=colour,
+                markeredgewidth=1.0,
+                zorder=3,
             )
 
         axis.set_title(f"{width * 1e3:.0f} mm, closure {closure:.2f}", fontsize=9)
@@ -329,21 +400,46 @@ def plot_slip_comparison(
     """Draw the same object with and without the slip response."""
     figure, axes = plt.subplots(2, 1, figsize=(6.8, 5.4), sharex=True)
 
-    axes[0].plot(with_response.time, with_response.grip_force, color="#1f4e79", linewidth=1.6,
-                 label="slip response on")
-    axes[0].plot(without_response.time, without_response.grip_force, color="#a33", linewidth=1.6,
-                 label="slip response off")
+    axes[0].plot(
+        with_response.time,
+        with_response.grip_force,
+        color="#1f4e79",
+        linewidth=1.6,
+        label="slip response on",
+    )
+    axes[0].plot(
+        without_response.time,
+        without_response.grip_force,
+        color="#a33",
+        linewidth=1.6,
+        label="slip response off",
+    )
     axes[0].set_ylabel("grip force, N")
     axes[0].set_title(f"Slip response on {with_response.item.name}")
     axes[0].grid(alpha=0.3)
     axes[0].legend(fontsize=8, loc="upper left")
 
-    axes[1].plot(with_response.time, with_response.slip_displacement * 1000.0,
-                 color="#1f4e79", linewidth=1.6, label="slip response on")
-    axes[1].plot(without_response.time, without_response.slip_displacement * 1000.0,
-                 color="#a33", linewidth=1.6, label="slip response off")
-    axes[1].axhline(with_response.config.plant.drop_distance * 1000.0, color="#555",
-                    linestyle="--", linewidth=1.0, label="drop distance")
+    axes[1].plot(
+        with_response.time,
+        with_response.slip_displacement * 1000.0,
+        color="#1f4e79",
+        linewidth=1.6,
+        label="slip response on",
+    )
+    axes[1].plot(
+        without_response.time,
+        without_response.slip_displacement * 1000.0,
+        color="#a33",
+        linewidth=1.6,
+        label="slip response off",
+    )
+    axes[1].axhline(
+        with_response.config.plant.drop_distance * 1000.0,
+        color="#555",
+        linestyle="--",
+        linewidth=1.0,
+        label="drop distance",
+    )
     axes[1].set_xlabel("time, s")
     axes[1].set_ylabel("slip displacement, mm")
     axes[1].set_yscale("symlog", linthresh=1.0)
